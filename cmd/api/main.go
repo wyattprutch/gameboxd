@@ -1,38 +1,46 @@
 package main
 
 import (
-	"encoding/json"
 	"log"
-	"net/http"
+
+	"github.com/gin-gonic/gin"
+	"github.com/wyattprutch/gameboxd/internal/config"
+	"github.com/wyattprutch/gameboxd/internal/handlers"
 )
 
-type Game struct {
-	AppID       int    `json:"appid"`
-	Name        string `json:"name"`
-	Description string `json:"description"`
-}
-
 func main() {
-	http.HandleFunc("/health", healthHandler)
-	http.HandleFunc("/games", gamesHandler)
+	cfg := config.Load()
 
-	log.Println("Starting server on :8080")
-	log.Fatal(http.ListenAndServe(":8080", nil))
-}
+	// Initialize Gin router
+	r := gin.Default()
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	response := map[string]string{"status": "ok"}
+	// CORS middleware
+	r.Use(func(c *gin.Context) {
+		c.Header("Access-Control-Allow-Origin", "http://localhost:5173")
+		c.Header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		c.Header("Access-Control-Allow-Headers", "Content-Type")
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(response)
-}
+		// OPTIONS requests are used for CORS preflight checks, so can return early
+		if c.Request.Method == "OPTIONS" {
+			c.AbortWithStatus(204)
+			return
+		}
 
-func gamesHandler(w http.ResponseWriter, r *http.Request) {
-	games := []Game{
-		{AppID: 1, Name: "Game 1", Description: "Description for Game 1"},
-		{AppID: 2, Name: "Game 2", Description: "Description for Game 2"},
+		c.Next()
+	})
+
+	// Health check
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{"status": "ok"})
+	})
+
+	// Route group
+	api := r.Group("/api")
+	{
+		api.GET("/games", handlers.GetGames)
+		api.GET("/games/:appid", handlers.GetGame)
 	}
 
-	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(games)
+	log.Printf("Server starting on port %s", cfg.Port)
+	r.Run(":" + cfg.Port)
 }
