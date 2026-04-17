@@ -4,26 +4,32 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/wyattprutch/gameboxd/internal/models"
+	"github.com/wyattprutch/gameboxd/internal/steam"
 )
 
-// GetGames handles GET requests to retrieve a list of games
-func GetGames(c *gin.Context) {
-	games := []models.Game{
-		{AppID: 1, Name: "Game 1", Description: "Description for Game 1"},
-		{AppID: 2, Name: "Game 2", Description: "Description for Game 2"},
+// holds dependencies for game-related handlers
+type GamesHandler struct {
+	Steam *steam.Client
+}
+
+// creates a GamesHandler with its dependencies
+func NewGamesHandler(steamClient *steam.Client) *GamesHandler {
+	return &GamesHandler{Steam: steamClient}
+}
+
+// search handles GET /api/games/search?q=halo
+func (h *GamesHandler) Search(c *gin.Context) {
+	query := c.Query("q")
+	if query == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "missing query parameter: q"})
+		return
+	}
+
+	games, err := h.Steam.SearchGames(query)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to search Steam"})
+		return
 	}
 
 	c.JSON(http.StatusOK, games)
-}
-
-// GetGame handles GET /api/games:appid
-func GetGame(c *gin.Context) {
-	appid := c.Param("appid")
-
-	c.JSON(http.StatusOK, gin.H{
-		"appid": appid,
-		"note":  "placeholder",
-	})
-	// Implementation for retrieving a single game by app ID
 }
