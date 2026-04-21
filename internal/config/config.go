@@ -6,6 +6,7 @@ import "os"
 type Config struct {
 	Port        string
 	SteamAPIKey string
+	JWTSecret   string
 	DBHost      string
 	DBPort      string
 	DBUser      string
@@ -19,6 +20,7 @@ func Load() *Config {
 	return &Config{
 		Port:        getEnv("PORT", "8080"),
 		SteamAPIKey: getEnv("STEAM_API_KEY", ""),
+		JWTSecret:   getEnv("JWT_SECRET", "supersecretkey"),
 		DBHost:      getEnv("DB_HOST", "localhost"),
 		DBPort:      getEnv("DB_PORT", "5432"),
 		DBUser:      getEnv("DB_USER", "gameboxd"),
